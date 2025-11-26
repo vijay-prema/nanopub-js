@@ -3,7 +3,7 @@ import {nodeResolve} from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import typescript from '@rollup/plugin-typescript'
 import nodePolyfills from 'rollup-plugin-polyfill-node'
-import {terser} from 'rollup-plugin-terser'
+import terser from '@rollup/plugin-terser';
 
 const rollupConf = {
   input: 'src/index.ts',
