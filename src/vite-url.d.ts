@@ -11,3 +11,6 @@ declare module '*.wasm' {
   const wasmModule: WebAssembly.Module;
   export default wasmModule;
 }
+
+// Cloudflare Workers global (used for environment detection)
+declare const WebSocketPair: unknown;

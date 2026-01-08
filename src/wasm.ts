@@ -12,8 +12,18 @@
 type NanopubSignWebModule = typeof import("@nanopub/sign/web.js");
 type NanopubSignBundlerModule = typeof import("@nanopub/sign/bundler.js");
 
+// Cloudflare Workers with `nodejs_compat` polyfill `process`, so we must not treat
+// "process exists" as "real Node".
+const isCloudflareWorkers =
+  typeof WebSocketPair !== "undefined" &&
+  typeof caches !== "undefined" &&
+  typeof window === "undefined";
+
 const isNode =
+  !isCloudflareWorkers &&
   typeof process !== "undefined" &&
+  typeof process.release !== "undefined" &&
+  process.release?.name === "node" &&
   typeof process.versions !== "undefined" &&
   typeof process.versions.node === "string";
 
@@ -26,6 +36,7 @@ const isBrowser =
 // Wrangler's bundler can provide `.wasm` imports as precompiled `WebAssembly.Module`s.
 // Using wasm-bindgen `initSync()` avoids any runtime fetch/bytes/data-url compilation path.
 const isWorkerLike =
+  isCloudflareWorkers ||
   !isNode &&
   !isBrowser &&
   typeof WebAssembly !== "undefined" &&
