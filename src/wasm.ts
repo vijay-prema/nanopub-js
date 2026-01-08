@@ -41,8 +41,12 @@ export async function getNanopubSignModule(): Promise<
 
       // Initialize WASM once per runtime.
       if (!webInitPromise) {
-        const wasmUrl = (await import("@nanopub/sign/web_bg.wasm?url")).default;
-        webInitPromise = mod.default(wasmUrl);
+        // Avoid Vite/Rollup-specific `?url` imports so this file stays compatible with
+        // non-Vite bundlers (e.g. Wrangler/esbuild).
+        //
+        // wasm-bindgen's web glue defaults to: new URL('web_bg.wasm', import.meta.url)
+        // which bundlers can typically statically analyze and ship as an asset.
+        webInitPromise = mod.default();
       }
       await webInitPromise;
 

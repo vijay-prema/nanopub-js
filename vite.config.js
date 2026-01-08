@@ -20,6 +20,9 @@ export default defineConfig({
       // dependency patterns. ESM output is the primary supported format.
       formats: ["es"],
     },
+    // Ensure wasm assets referenced via `new URL('*.wasm', import.meta.url)` are emitted
+    // alongside the JS output.
+    assetsInlineLimit: 0,
   },
 
   resolve: {
