@@ -6,3 +6,8 @@ declare module '*?url' {
   export default url;
 }
 
+// Wrangler/esbuild can provide `*.wasm` imports as precompiled `WebAssembly.Module`.
+declare module '*.wasm' {
+  const wasmModule: WebAssembly.Module;
+  export default wasmModule;
+}

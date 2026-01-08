@@ -23,6 +23,14 @@ export default defineConfig({
     // Ensure wasm assets referenced via `new URL('*.wasm', import.meta.url)` are emitted
     // alongside the JS output.
     assetsInlineLimit: 0,
+
+    // `@nanopub/sign/web_bg.wasm` (wasm-bindgen web target) contains an import module named
+    // "wbg". Vite's wasm plugin attempts to transform/bundle it, which fails resolution.
+    // We only ever load this wasm via Wrangler/Workers (as a `WebAssembly.Module`) using
+    // wasm-bindgen's `initSync()`, so keep it external for the Vite library build.
+    rollupOptions: {
+      external: ["@nanopub/sign/web_bg.wasm"],
+    },
   },
 
   resolve: {
