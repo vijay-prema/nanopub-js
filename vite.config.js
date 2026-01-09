@@ -11,11 +11,17 @@ export default defineConfig({
   // Build in library mode
   build: {
     lib: {
-      // We now use single-entry index.ts when using vite build.
-      // To add multi-entry see https://vite.dev/guide/build#library-mode
-      entry: "src/index.ts",
+      // Multi-entry build:
+      // - `nanopub-js` (browser-friendly) does NOT import `.wasm` modules
+      // - `nanopub-js/worker` (Wrangler/CF Workers) can import `.wasm` and use initSync
+      //
+      // Consumers pick the right entrypoint via package.json `exports`.
+      entry: {
+        index: "src/index.ts",
+        worker: "src/worker.ts",
+      },
       name: "nanopub-js",
-      fileName: "index",
+      fileName: (_format, entryName) => entryName,
       // Avoid UMD output: Rollup UMD does not support top-level await and some wasm
       // dependency patterns. ESM output is the primary supported format.
       formats: ["es"],
