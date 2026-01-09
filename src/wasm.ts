@@ -37,15 +37,34 @@ const isBrowser =
 // Using wasm-bindgen `initSync()` avoids any runtime fetch/bytes/data-url compilation path.
 const isWorkerLike =
   isCloudflareWorkers ||
-  !isNode &&
-  !isBrowser &&
-  typeof WebAssembly !== "undefined" &&
-  typeof fetch === "function";
+  (!isNode &&
+    !isBrowser &&
+    typeof WebAssembly !== "undefined" &&
+    typeof fetch === "function");
 
 let modulePromise: Promise<
   NanopubSignWebModule | NanopubSignBundlerModule
 > | null = null;
 let webInitPromise: Promise<unknown> | null = null;
+
+// Optional init argument for wasm-bindgen initialization (primarily for worker/edge runtimes).
+// e.g. In Cloudflare Workers, the most reliable way to load wasm is often:
+//   import wasmMod from '@nanopub/sign/web_bg.wasm'
+//   setNanopubSignWasmInitArg(wasmMod)
+// so we allow the consuming app to supply that module without this library importing `.wasm`.
+let explicitWebInitArg: unknown | undefined;
+
+/**
+ * Provide an explicit wasm-bindgen init argument for `@nanopub/sign/web.js`.
+ *
+ * This exists to keep this library compatible with Vite browser builds:
+ * we intentionally avoid importing `.wasm` from within this package, because Vite
+ * treats such imports in dependencies as “ESM wasm” and fails unless extra plugins
+ * are configured.
+ */
+export function setNanopubSignWasmInitArg(arg: unknown): void {
+  explicitWebInitArg = arg;
+}
 
 /**
  * Returns an initialized `@nanopub/sign` module appropriate for the current runtime.
@@ -61,20 +80,19 @@ export async function getNanopubSignModule(): Promise<
   modulePromise = (async () => {
     // Worker/edge runtime path (Wrangler / Cloudflare Workers)
     if (isWorkerLike) {
-      const [mod, wasmMod] = await Promise.all([
-        import("@nanopub/sign/web.js"),
-        import("@nanopub/sign/web_bg.wasm"),
-      ]);
+      const mod = await import("@nanopub/sign/web.js");
 
       // Initialize WASM once per runtime.
       if (!webInitPromise) {
-        const wkmod: WebAssembly.Module =
-          (wasmMod as any).default ?? (wasmMod as any);
-
-        // Prefer sync init with a precompiled module (worker-friendly).
-        webInitPromise = (mod as any).initSync
-          ? Promise.resolve((mod as any).initSync(wkmod))
-          : (mod as any).default(wkmod);
+        // Prefer sync init with a precompiled module (worker-friendly) when the app
+        // supplies one (e.g. via Wrangler's `.wasm` module imports).
+        // Otherwise fall back to wasm-bindgen's default URL-based loading.
+        const initArg = explicitWebInitArg;
+        if ((mod as any).initSync && initArg instanceof WebAssembly.Module) {
+          webInitPromise = Promise.resolve((mod as any).initSync(initArg));
+        } else {
+          webInitPromise = (mod as any).default(initArg as any);
+        }
       }
       await webInitPromise;
 
